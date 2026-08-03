@@ -35,7 +35,7 @@ header.site{position:sticky;top:0;z-index:50;background:rgba(246,248,247,.92);ba
 .logo small{display:block;font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--green)}
 .nav-links{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
 .nav-links::-webkit-scrollbar{display:none}
-.nav-links a{color:var(--soft);text-decoration:none;font-size:14.5px;font-weight:600;padding:8px 10px;border-radius:8px;white-space:nowrap}
+.nav-links a{color:var(--soft);text-decoration:none;font-size:13.5px;font-weight:600;padding:8px 8px;border-radius:8px;white-space:nowrap}
 .nav-links a:hover{background:var(--mint);color:var(--green)}
 .nav-links a[aria-current]{color:var(--green);background:var(--mint)}
 .nav-cta{display:flex;gap:8px;align-items:center}
@@ -117,8 +117,9 @@ footer.site a:hover{color:#fff;text-decoration:underline}
 .foot-grid li{margin-bottom:8px}
 .legal{border-top:1px solid #24382f;padding-top:20px;font-size:12.5px;color:#8fa39a;line-height:1.7}
 .legal p{margin-bottom:8px}
+@media(max-width:1180px){.nav-cta .btn-ghost{display:none}}
 @media(max-width:760px){.hero{padding:44px 0 30px}.nav{gap:10px}.nav-cta .btn{padding:10px 14px;font-size:14px}
-.nav-cta .btn-ghost{display:none}section.band{padding:34px 0}}
+section.band{padding:34px 0}}
 </style>
 </head>
 <body>
