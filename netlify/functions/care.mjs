@@ -67,37 +67,97 @@ const BANNED_WORDS = [
 
 // --- inline copy of src/care/guardrails.ts lint patterns --------------------
 
-const DOLLAR_AMOUNT = /\$\s*[\d,]+(?:\.\d+)?/g
-const PRICE_CONTEXT = /premium|cost|price|\bpay\b|per (?:month|year)|annually|monthly/gi
-const COVERAGE_ASSERTIONS = [
-  /\byour (?:policy|coverage|certificate|plan) (?:covers|excludes|includes|protects|applies|does|does not|doesn't|will|won't|would)\b/i,
-  /\byou (?:are|are not|aren't) (?:insured|protected)\b/i,
-]
-const LEGAL_ADVICE = /you should sue|legal advice|you (?:do not|don't) need (?:a|an) (?:lawyer|attorney)/i
-const PROXIMITY_WINDOW = 120
-
-function dollarNearPriceWord(text) {
-  const dollars = [...text.matchAll(DOLLAR_AMOUNT)]
-  if (dollars.length === 0) return false
-  const words = [...text.matchAll(PRICE_CONTEXT)]
-  return dollars.some((d) => words.some((w) => Math.abs((w.index ?? 0) - (d.index ?? 0)) <= PROXIMITY_WINDOW))
+function normalizeForLint(text) {
+  return String(text ?? '')
+    .normalize('NFKC')
+    .replace(/[‘’ʼ′]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[‐-―−]/g, '-')
+    .replace(/ /g, ' ')
+    .replace(/\b(\w+)'(re|s|ll|ve|d|t)\b/gi, (_m, a, b) => {
+      const map = { re: ' are', s: ' is', ll: ' will', ve: ' have', d: ' would' }
+      if (b.toLowerCase() !== 't') return a + (map[b.toLowerCase()] ?? "'" + b)
+      const low = a.toLowerCase()
+      if (low === 'won') return 'will not'
+      if (low === 'can') return 'can not'
+      return (low.endsWith('n') ? a.slice(0, -1) : a) + ' not'
+    })
+    .replace(/-/g, ' ')
+    .replace(/\s+/g, ' ')
 }
+
+const SAFE_NUMERICS = [
+  /\(?\b631\)?[ .-]?452[ .-]?4075\b/g,
+  /\b1986535\b/g,
+  /\bclass(?: code)? ?\d{4}\b/gi,
+  /\b(?:19|20)\d{2}\b/g,
+]
+
+function stripSafeNumerics(text) {
+  let out = text
+  for (const re of SAFE_NUMERICS) out = out.replace(re, ' ')
+  return out
+}
+
+const MONEY_EXPLICIT =
+  /(?:[$€£¥]\s*\d|\b\d[\d,]*(?:\.\d+)?\s*(?:dollars?|bucks|grand|usd)\b|\busd\s*\d|\b\d+\s*k\b(?=[^]{0,40}(?:year|month|annual|premium|cost|price|pay)))/i
+const SPELLED_MAGNITUDE = /\b(?:hundred|thousand|grand|million)\b/i
+const BARE_NUMBER = /\d/
+const PRICE_CONTEXT =
+  /premium|cost|costs|pricing|price|\bpay\b|paying|payment|per (?:month|year|hundred)|(?:a|per|the) (?:month|year)|for the (?:month|year)|annually|monthly|yearly|annual|runs? (?:about|around)|budget|ballpark|\brate\b|deposit|quote|charge|billed|cheaper|expensive|afford/i
+const RATE_OF_PAYROLL =
+  /(?:percent|%|per \$? ?\d+)[^]{0,30}(?:of )?(?:payroll|wages|remuneration)|(?:payroll|wages)[^]{0,30}(?:percent|%)/i
+
+function statesMoney(normalized) {
+  if (MONEY_EXPLICIT.test(normalized)) return true
+  if (RATE_OF_PAYROLL.test(normalized)) return true
+  const stripped = stripSafeNumerics(normalized)
+  const priced = PRICE_CONTEXT.test(normalized)
+  if (priced && BARE_NUMBER.test(stripped)) return true
+  if (priced && SPELLED_MAGNITUDE.test(stripped)) return true
+  return false
+}
+
+const ASSERTION_SUBJECT = /\b(?:you|your (?:policy|coverage|certificate|plan|business|crew)|the policy|this coverage|that|it)\b/i
+const ASSERTION_PREDICATE =
+  /\b(?:are|is|will be|would be|have|has)?\s*(?:covered|protected|insured|included|excluded|in force|good|fine|all set|taken care of)\b/i
+const COVERAGE_ASSERTIONS = [
+  /\byour (?:policy|coverage|certificate|plan) (?:covers|excludes|includes|protects|applies|does|does not|will|will not|would)\b/i,
+  /\byou (?:are|are not) (?:insured|protected|covered)\b/i,
+  /\b(?:esta|estas|estan|est[aá]) (?:cubierto|cubierta|asegurado|protegido)\b/i,
+  /\bsu (?:p[oó]liza|cobertura|seguro) (?:cubre|incluye|excluye|protege)\b/i,
+]
+
+function assertsCoverage(normalized) {
+  for (const re of COVERAGE_ASSERTIONS) if (re.test(normalized)) return true
+  const m = normalized.match(ASSERTION_SUBJECT)
+  if (!m) return false
+  const after = normalized.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 40)
+  return ASSERTION_PREDICATE.test(after)
+}
+
+const LEGAL_ADVICE =
+  /you should sue|legal advice|you (?:do not|don't) need (?:a|an) (?:lawyer|attorney)|you (?:can|could|should) (?:ignore|disregard|refuse to sign|get out of|void)\b|(?:is|are) not (?:legally )?(?:binding|enforceable)|you are not (?:liable|responsible|obligated)/i
+const PROMPT_DISCLOSURE = /\b(?:my (?:system )?(?:prompt|instructions) (?:are|say|is))|you are the automated assistant on the website\b/i
 
 function lintReply(text) {
   const violations = []
+  const norm = normalizeForLint(text)
   for (const re of BANNED_WORDS) {
-    const m = text.match(re)
+    const m = norm.match(re)
     if (m) violations.push({ rule: 'banned_vocabulary', detail: m[0] })
   }
-  if (dollarNearPriceWord(text)) {
-    violations.push({ rule: 'premium_figure', detail: 'dollar amount near price language' })
+  if (statesMoney(norm)) {
+    violations.push({ rule: 'premium_figure', detail: 'money figure or price claim' })
   }
-  for (const re of COVERAGE_ASSERTIONS) {
-    const m = text.match(re)
-    if (m) violations.push({ rule: 'coverage_assertion', detail: m[0] })
+  if (assertsCoverage(norm)) {
+    violations.push({ rule: 'coverage_assertion', detail: 'asserts a coverage state' })
   }
-  const legal = text.match(LEGAL_ADVICE)
+  const legal = norm.match(LEGAL_ADVICE)
   if (legal) violations.push({ rule: 'legal_advice', detail: legal[0] })
+  if (PROMPT_DISCLOSURE.test(norm)) {
+    violations.push({ rule: 'prompt_disclosure', detail: 'recites its own instructions' })
+  }
   return violations
 }
 
@@ -117,17 +177,34 @@ const CAPS_MIN_LETTERS = 12
 const CAPS_RATIO = 0.7
 
 function shouldEscalate(userMessage, replyDraft) {
-  const msg = String(userMessage ?? '')
+  const msg = normalizeForLint(userMessage)
   for (const t of ESCALATION_TRIGGERS) {
     if (t.re.test(msg)) return { escalate: true, reason: t.reason }
   }
   const letters = msg.replace(/[^a-zA-Z]/g, '')
   if (letters.length >= CAPS_MIN_LETTERS) {
     const upper = letters.replace(/[^A-Z]/g, '').length
-    if (upper / letters.length >= CAPS_RATIO) return { escalate: true, reason: 'upset' }
+    const hasLongCapsWord = /\b[A-Z]{6,}\b/.test(msg)
+    if (upper / letters.length >= CAPS_RATIO && hasLongCapsWord) {
+      return { escalate: true, reason: 'upset' }
+    }
   }
   if (String(replyDraft ?? '').includes('[ESCALATE]')) return { escalate: true, reason: 'model_escalate' }
   return { escalate: false, reason: '' }
+}
+
+// ESCALATION LATCHES. Checking only the newest turn let an escalated price
+// ask be answered on the next benign turn, because the price question was
+// still in the replayed history the model reads while tripping no trigger
+// itself. Once any user turn in the retained history belongs to Anthony,
+// the whole conversation belongs to Anthony.
+function escalationForHistory(history, replyDraft) {
+  for (const m of history) {
+    if (m.role !== 'user') continue
+    const d = shouldEscalate(m.content, '')
+    if (d.escalate) return d
+  }
+  return shouldEscalate('', replyDraft)
 }
 
 // --- inline copy of src/care/guardrails.ts identity + sanitation ------------
@@ -367,8 +444,10 @@ async function handle(req) {
   const origin = safeOrigin(req)
 
   // User-side escalation runs BEFORE the model: cheaper, and the model
-  // never sees a conversation we already know belongs to Anthony.
-  const pre = shouldEscalate(lastUser.content, '')
+  // never sees a conversation we already know belongs to Anthony. It reads
+  // EVERY retained user turn, not just the newest, so an escalation cannot
+  // be walked back by a benign follow-up.
+  const pre = escalationForHistory(history, '')
   if (pre.escalate) {
     await submitEscalation(origin, history, pre.reason)
     return json({
@@ -438,20 +517,32 @@ async function handle(req) {
     return json({ escalated: true, message: SAFE_FALLBACK, tel: TEL })
   }
 
-  // 6. Model-flagged escalation: keep its warm sentence, drop the token.
-  //    No identity prefix here; the widget shows the persistent disclosure
-  //    and this message is a handoff to the human, not an answer.
-  const post = shouldEscalate(lastUser.content, reply)
+  // 6. Model-flagged escalation. The reply body is DISCARDED, not echoed.
+  //    The previous version stripped the [ESCALATE] token and shipped the
+  //    model's own sentence, which meant text was transformed AFTER the
+  //    lint and reached the customer unlinted: a premium figure sitting
+  //    next to the token went out on exactly the branch that exists to
+  //    prevent it. A handoff needs no model prose, so it gets none.
+  const post = escalationForHistory(history, reply)
   if (post.escalate) {
-    let msg = reply.split('[ESCALATE]').join(' ').replace(/\s+/g, ' ').trim()
-    if (!msg) msg = ESCALATE_MESSAGE
     await submitEscalation(origin, history, post.reason)
-    return json({ escalated: true, message: msg, tel: TEL })
+    return json({
+      escalated: true,
+      message: post.reason === 'spanish' ? ES_ESCALATE_MESSAGE : ESCALATE_MESSAGE,
+      tel: TEL,
+    })
   }
 
-  // 7. Normal educational answer.
-  reply = enforceIdentity(reply)
-  return json({ message: reply, sources: extractSources(reply) })
+  // 7. Normal educational answer. The identity line is prepended FIRST and
+  //    the lint runs LAST, on the exact bytes that ship. Nothing may
+  //    transform the string between the final lint and the response.
+  const finalReply = enforceIdentity(reply)
+  const finalViolations = lintReply(finalReply)
+  if (finalViolations.length > 0) {
+    await submitEscalation(origin, history, 'lint_final:' + finalViolations.map((v) => v.rule).join(','))
+    return json({ escalated: true, message: SAFE_FALLBACK, tel: TEL })
+  }
+  return json({ message: finalReply, sources: extractSources(finalReply) })
 }
 
 export default async function handler(req) {
