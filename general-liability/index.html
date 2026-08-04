@@ -131,10 +131,10 @@ section.band{padding:34px 0}}
 
 <header class="site"><div class="wrap nav">
   <a class="logo" href="/"><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 2l12 5v9c0 8-5.2 13.5-12 16C10.2 29.5 5 24 5 16V7l12-5z" fill="#0e5a3a"/><path d="M11 16.5l4 4 8-8" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Anthony Yanza<small>Commercial Insurance</small></span></a>
-  <nav class="nav-links" aria-label="Main"><a href="/workers-comp/">Workers Comp</a><a href="/general-liability/" aria-current="page">Liability</a><a href="/commercial-auto/">Auto</a><a href="/employee-benefits/">Benefits</a><a href="/faq/">FAQ</a><a href="/blog/">Blog</a><a href="/about/">About</a><a href="/contact/">Contact</a></nav>
+  <nav class="nav-links" aria-label="Main"><a href="/workers-comp/">Workers Comp</a><a href="/general-liability/" aria-current="page">Liability</a><a href="/commercial-auto/">Auto</a><a href="/employee-benefits/">Benefits</a><a href="/checkup/">Checkup</a><a href="/class-codes/">Class Codes</a><a href="/faq/">FAQ</a><a href="/blog/">Blog</a><a href="/about/">About</a><a href="/contact/">Contact</a></nav>
   <div class="nav-cta">
     <a class="btn-ghost" href="tel:6314524075">(631) 452-4075</a>
-    <a class="btn" href="/apply.html">Start application</a>
+    <a class="btn" href="/apply/">Start application</a>
   </div>
 </div></header>
 <main id="main">
@@ -376,13 +376,112 @@ section.band{padding:34px 0}}
     <h2>Settle the certificate question before the GC asks.</h2>
     <p>Start the ten-field application, or send over the insurance exhibit from the contract in front of you and we will read it together. Every number cited, every page e-signed by you.</p>
     <div class="hero-cta">
-      <a class="btn btn-big" href="/apply.html">Start your application</a>
+      <a class="btn btn-big" href="/apply/">Start your application</a>
       <a class="btn-ghost" href="tel:6314524075">Or call (631) 452-4075</a>
     </div>
   </div>
 </div></section>
 
 </main>
+
+<style>
+#cw-open{position:fixed;right:18px;bottom:18px;z-index:80;background:#0e5a3a;color:#fff;border:0;
+border-radius:99px;padding:14px 20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(14,90,58,.35)}
+#cw-open:hover{background:#0b4a30}
+#cw-panel{position:fixed;right:18px;bottom:76px;z-index:81;width:min(360px,calc(100vw - 36px));
+height:min(540px,calc(100vh - 120px));display:none;flex-direction:column;background:#fff;
+border:1px solid #dde4e0;border-radius:16px;box-shadow:0 18px 50px rgba(22,33,28,.22);overflow:hidden;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5;color:#16211c}
+#cw-panel.cw-on{display:flex}
+.cw-head{background:#0e5a3a;color:#fff;padding:13px 16px}
+.cw-head b{font-size:15.5px}
+.cw-head p{margin:5px 0 0;font-size:12.5px;color:#cfe4da}
+.cw-call{display:block;background:#e7f2ec;color:#0b4a30;text-decoration:none;font-weight:700;
+font-size:13.5px;padding:9px 16px;border-bottom:1px solid #dde4e0;text-align:center}
+.cw-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.cw-m{max-width:88%;padding:9px 12px;border-radius:12px;font-size:14px;white-space:pre-wrap;overflow-wrap:break-word}
+.cw-u{align-self:flex-end;background:#0e5a3a;color:#fff;border-bottom-right-radius:4px}
+.cw-a{align-self:flex-start;background:#f6f8f7;border:1px solid #dde4e0;border-bottom-left-radius:4px}
+.cw-a a{color:#1c5c8e;word-break:break-all}
+.cw-src{display:block;font-size:12px;margin-top:6px}
+.cw-note{align-self:stretch;background:#e7f2ec;color:#0b4a30;border-radius:12px;padding:10px 12px;font-size:13.5px}
+.cw-note a{color:#0b4a30;font-weight:800;display:inline-block;margin-top:4px}
+.cw-form{display:flex;gap:8px;padding:12px;border-top:1px solid #dde4e0}
+.cw-form input{flex:1;min-width:0;padding:10px 12px;border:1px solid #dde4e0;border-radius:10px;
+font-family:inherit;font-size:14px;color:#16211c;background:#fff}
+.cw-form input:focus{outline:2px solid #0e5a3a;border-color:#0e5a3a}
+.cw-form button{background:#0e5a3a;color:#fff;border:0;border-radius:10px;padding:10px 16px;
+font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.cw-form button:hover{background:#0b4a30}
+@media(max-width:760px){#cw-open{right:14px;bottom:14px}#cw-panel{right:14px;bottom:70px}}
+</style>
+<button id="cw-open" type="button" aria-expanded="false" aria-controls="cw-panel">Questions? Ask</button>
+<section id="cw-panel" role="dialog" aria-label="Ask a question">
+  <div class="cw-head">
+    <b>Ask a question</b>
+    <p>Automated assistant. Anthony is one tap away at any time.</p>
+  </div>
+  <a class="cw-call" href="tel:6314524075">Call Anthony (631) 452-4075</a>
+  <div class="cw-log" id="cw-log" aria-live="polite"></div>
+  <form class="cw-form" id="cw-form">
+    <input id="cw-in" type="text" maxlength="2000" placeholder="Type a question"
+      aria-label="Your question" autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+</section>
+<form name="care-escalation" method="POST" action="/thanks.html" data-netlify="true"
+  netlify-honeypot="bot-field" hidden aria-hidden="true">
+  <input type="hidden" name="form-name" value="care-escalation">
+  <input type="text" name="transcript">
+  <input type="text" name="contact">
+  <input type="text" name="reason">
+  <p style="position:absolute;left:-9999px">
+    <label>Leave this empty: <input name="bot-field" tabindex="-1" autocomplete="off"></label>
+  </p>
+</form>
+<script>
+(function(){
+var open=document.getElementById('cw-open'),panel=document.getElementById('cw-panel'),
+log=document.getElementById('cw-log'),form=document.getElementById('cw-form'),
+input=document.getElementById('cw-in');
+var msgs=[],busy=false,greeted=false;
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function add(cls,html){var el=document.createElement('div');el.className='cw-m '+cls;
+el.innerHTML=html;log.appendChild(el);log.scrollTop=log.scrollHeight;return el}
+function note(text){var el=document.createElement('div');el.className='cw-note';
+el.innerHTML=esc(text)+' <a href="tel:6314524075">Call (631) 452-4075</a>';
+log.appendChild(el);log.scrollTop=log.scrollHeight}
+open.addEventListener('click',function(){var on=panel.classList.toggle('cw-on');
+open.setAttribute('aria-expanded',on?'true':'false');
+if(on&&!greeted){greeted=true;add('cw-a',esc("Hi, I am the automated assistant on this site. Ask me anything general about workers comp, liability, auto, or benefits for your business. Anything about your own account goes straight to Anthony."))}
+if(on){input.focus()}});
+form.addEventListener('submit',function(e){e.preventDefault();
+var q=input.value.trim();if(!q||busy){return}
+input.value='';msgs.push({role:'user',content:q});add('cw-u',esc(q));
+busy=true;var wait=add('cw-a','&hellip;');
+fetch('/.netlify/functions/care',{method:'POST',
+headers:{'content-type':'application/json'},
+body:JSON.stringify({messages:msgs.slice(-12)})})
+.then(function(r){return r.json()})
+.then(function(d){wait.remove();busy=false;
+if(d&&d.offline){note(d.message||'The assistant is offline right now.');
+input.disabled=true;input.placeholder='Assistant offline; the phone works';return}
+if(d&&d.escalated){msgs.push({role:'assistant',content:String(d.message||'')});
+note(d.message||'Anthony will call you.');return}
+var m=(d&&d.message)?String(d.message):'That did not go through. The phone always works.';
+msgs.push({role:'assistant',content:m});
+var html=esc(m);
+if(d&&d.sources&&d.sources.length){for(var i=0;i<d.sources.length;i++){
+var u=String(d.sources[i]);
+if(u.indexOf('https://xdate-deal-room.netlify.app/')===0){
+html+='<a class="cw-src" href="'+u+'">Source: '+esc(u.replace('https://xdate-deal-room.netlify.app',''))+'</a>'}}}
+add('cw-a',html)})
+.catch(function(){wait.remove();busy=false;
+note('The assistant could not connect.')})});
+})();
+</script>
+
 
 <footer class="site"><div class="wrap">
   <div class="foot-grid">
@@ -391,6 +490,7 @@ section.band{padding:34px 0}}
       <li><a href="/general-liability/">General liability</a></li>
       <li><a href="/commercial-auto/">Commercial auto</a></li>
       <li><a href="/employee-benefits/">Employee benefits</a></li>
+      <li><a href="/certificates/">Certificates of insurance</a></li>
     </ul></div>
     <div><p class="fh">Company</p><ul>
       <li><a href="/about/">About and licensing</a></li>
@@ -399,7 +499,9 @@ section.band{padding:34px 0}}
       <li><a href="/blog/">Blog</a></li>
     </ul></div>
     <div><p class="fh">Get started</p><ul>
-      <li><a href="/apply.html">Start your application</a></li>
+      <li><a href="/apply/">Start your application</a></li>
+      <li><a href="/checkup/">Free coverage checkup</a></li>
+      <li><a href="/class-codes/">Class code lookup</a></li>
       <li><a href="tel:6314524075">Call (631) 452-4075</a></li>
       <li><a href="mailto:anthonyyanza5@gmail.com">anthonyyanza5@gmail.com</a></li>
       <li><a href="/unsubscribe.html">Unsubscribe</a></li>
